@@ -124,16 +124,16 @@ SPDLOG_INLINE void registry::set_default_logger(std::shared_ptr<logger> new_defa
     default_logger_ = std::move(new_default_logger);
 }
 
-SPDLOG_INLINE void registry::set_tp(std::shared_ptr<thread_pool> tp)
+SPDLOG_INLINE void registry::set_alw(std::shared_ptr<async_log_writer> alm)
 {
-    std::lock_guard<std::recursive_mutex> lock(tp_mutex_);
-    tp_ = std::move(tp);
+    std::lock_guard<std::recursive_mutex> lock(alw_mutex_);
+    alw_ = std::move(alm);
 }
 
-SPDLOG_INLINE std::shared_ptr<thread_pool> registry::get_tp()
+SPDLOG_INLINE std::shared_ptr<async_log_writer> registry::get_alw()
 {
-    std::lock_guard<std::recursive_mutex> lock(tp_mutex_);
-    return tp_;
+    std::lock_guard<std::recursive_mutex> lock(alw_mutex_);
+    return alw_;
 }
 
 // Set global formatter. Each sink in each logger will get a clone of this object
@@ -251,14 +251,14 @@ SPDLOG_INLINE void registry::shutdown()
     drop_all();
 
     {
-        std::lock_guard<std::recursive_mutex> lock(tp_mutex_);
-        tp_.reset();
+        std::lock_guard<std::recursive_mutex> lock(alw_mutex_);
+        alw_.reset();
     }
 }
 
-SPDLOG_INLINE std::recursive_mutex &registry::tp_mutex()
+SPDLOG_INLINE std::recursive_mutex &registry::alw_mutex()
 {
-    return tp_mutex_;
+    return alw_mutex_;
 }
 
 SPDLOG_INLINE void registry::set_automatic_registration(bool automatic_registration)

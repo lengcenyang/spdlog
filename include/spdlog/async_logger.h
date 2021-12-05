@@ -27,26 +27,26 @@ enum class async_overflow_policy
 };
 
 namespace details {
-class thread_pool;
+class async_log_writer;
 }
 
 class SPDLOG_API async_logger final : public std::enable_shared_from_this<async_logger>, public logger
 {
-    friend class details::thread_pool;
+    friend class details::async_log_writer;
 
 public:
     template<typename It>
-    async_logger(std::string logger_name, It begin, It end, std::weak_ptr<details::thread_pool> tp,
+    async_logger(std::string logger_name, It begin, It end, std::weak_ptr<details::async_log_writer> lw,
         async_overflow_policy overflow_policy = async_overflow_policy::block)
         : logger(std::move(logger_name), begin, end)
-        , thread_pool_(std::move(tp))
+        , log_writer_(std::move(lw))
         , overflow_policy_(overflow_policy)
     {}
 
-    async_logger(std::string logger_name, sinks_init_list sinks_list, std::weak_ptr<details::thread_pool> tp,
+    async_logger(std::string logger_name, sinks_init_list sinks_list, std::weak_ptr<details::async_log_writer> lw,
         async_overflow_policy overflow_policy = async_overflow_policy::block);
 
-    async_logger(std::string logger_name, sink_ptr single_sink, std::weak_ptr<details::thread_pool> tp,
+    async_logger(std::string logger_name, sink_ptr single_sink, std::weak_ptr<details::async_log_writer> lw,
         async_overflow_policy overflow_policy = async_overflow_policy::block);
 
     std::shared_ptr<logger> clone(std::string new_name) override;
@@ -58,7 +58,7 @@ protected:
     void backend_flush_();
 
 private:
-    std::weak_ptr<details::thread_pool> thread_pool_;
+    std::weak_ptr<details::async_log_writer> log_writer_;
     async_overflow_policy overflow_policy_;
 };
 } // namespace spdlog

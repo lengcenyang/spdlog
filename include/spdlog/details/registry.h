@@ -21,7 +21,7 @@ namespace spdlog {
 class logger;
 
 namespace details {
-class thread_pool;
+class async_log_writer;
 class periodic_worker;
 
 class SPDLOG_API registry
@@ -46,9 +46,9 @@ public:
     // default logger is stored in default_logger_ (for faster retrieval) and in the loggers_ map.
     void set_default_logger(std::shared_ptr<logger> new_default_logger);
 
-    void set_tp(std::shared_ptr<thread_pool> tp);
+    void set_alw(std::shared_ptr<async_log_writer> alw);
 
-    std::shared_ptr<thread_pool> get_tp();
+    std::shared_ptr<async_log_writer> get_alw();
 
     // Set global formatter. Each sink in each logger will get a clone of this object
     void set_formatter(std::unique_ptr<formatter> formatter);
@@ -76,7 +76,7 @@ public:
     // clean all resources and threads started by the registry
     void shutdown();
 
-    std::recursive_mutex &tp_mutex();
+    std::recursive_mutex &alw_mutex();
 
     void set_automatic_registration(bool automatic_registration);
 
@@ -93,14 +93,14 @@ private:
     void register_logger_(std::shared_ptr<logger> new_logger);
     bool set_level_from_cfg_(logger *logger);
     std::mutex logger_map_mutex_, flusher_mutex_;
-    std::recursive_mutex tp_mutex_;
+    std::recursive_mutex alw_mutex_;
     std::unordered_map<std::string, std::shared_ptr<logger>> loggers_;
     log_levels log_levels_;
     std::unique_ptr<formatter> formatter_;
     spdlog::level::level_enum global_log_level_ = level::info;
     level::level_enum flush_level_ = level::off;
     err_handler err_handler_;
-    std::shared_ptr<thread_pool> tp_;
+    std::shared_ptr<async_log_writer> alw_;
     std::unique_ptr<periodic_worker> periodic_flusher_;
     std::shared_ptr<logger> default_logger_;
     bool automatic_registration_ = true;

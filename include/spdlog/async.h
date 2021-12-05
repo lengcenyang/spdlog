@@ -16,7 +16,7 @@
 
 #include <spdlog/async_logger.h>
 #include <spdlog/details/registry.h>
-#include <spdlog/details/thread_pool.h>
+#include <spdlog/details/async_log_writer.h>
 
 #include <memory>
 #include <mutex>
@@ -41,17 +41,17 @@ struct async_factory_impl
 
         // create global thread pool if not already exists..
 
-        auto &mutex = registry_inst.tp_mutex();
+        auto &mutex = registry_inst.alw_mutex();
         std::lock_guard<std::recursive_mutex> tp_lock(mutex);
-        auto tp = registry_inst.get_tp();
-        if (tp == nullptr)
+        auto alw = registry_inst.get_alw();
+        if (alw == nullptr)
         {
-            tp = std::make_shared<details::thread_pool>(details::default_async_q_size, 1U);
-            registry_inst.set_tp(tp);
+            alw = std::make_shared<details::async_log_writer>(details::default_async_q_size);
+            registry_inst.set_alw(alw);
         }
 
         auto sink = std::make_shared<Sink>(std::forward<SinkArgs>(args)...);
-        auto new_logger = std::make_shared<async_logger>(std::move(logger_name), std::move(sink), std::move(tp), OverflowPolicy);
+        auto new_logger = std::make_shared<async_logger>(std::move(logger_name), std::move(sink), std::move(alw), OverflowPolicy);
         registry_inst.initialize_logger(new_logger);
         return new_logger;
     }
@@ -72,22 +72,22 @@ inline std::shared_ptr<spdlog::logger> create_async_nb(std::string logger_name, 
     return async_factory_nonblock::create<Sink>(std::move(logger_name), std::forward<SinkArgs>(sink_args)...);
 }
 
-// set global thread pool.
-inline void init_thread_pool(size_t q_size, size_t thread_count, std::function<void()> on_thread_start)
+// set global async log manage.
+inline void init_async_log_manage(size_t q_size, std::function<void()> on_thread_start)
 {
-    auto tp = std::make_shared<details::thread_pool>(q_size, thread_count, on_thread_start);
-    details::registry::instance().set_tp(std::move(tp));
+    auto alm = std::make_shared<details::async_log_writer>(q_size, on_thread_start);
+    details::registry::instance().set_alw(std::move(alm));
 }
 
-// set global thread pool.
-inline void init_thread_pool(size_t q_size, size_t thread_count)
+// set global async log manage.
+inline void init_async_log_manage(size_t q_size)
 {
-    init_thread_pool(q_size, thread_count, [] {});
+    init_async_log_manage(q_size, [] {});
 }
 
-// get the global thread pool.
-inline std::shared_ptr<spdlog::details::thread_pool> thread_pool()
+// get the global async log manage.
+inline std::shared_ptr<spdlog::details::async_log_writer> async_log_manage()
 {
-    return details::registry::instance().get_tp();
+    return details::registry::instance().get_alw();
 }
 } // namespace spdlog
