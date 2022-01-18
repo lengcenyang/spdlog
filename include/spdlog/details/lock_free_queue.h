@@ -11,7 +11,7 @@ namespace spdlog {
 namespace details {
 
 template <typename T,size_t SIZE>
-class free_lock_queue{
+class lock_free_queue{
 private:
     std::array<std::shared_ptr<T>,SIZE> v_;
     std::atomic<size_t> write_index_ = 0;
@@ -19,11 +19,11 @@ private:
     std::atomic<size_t> read_index_ = 0;
 
 public:
-    free_lock_queue() = default;
-    ~free_lock_queue() = default;
+    lock_free_queue() = default;
+    ~lock_free_queue() = default;
     
-    free_lock_queue(const free_lock_queue &) = delete;
-    free_lock_queue &operator=(const free_lock_queue &) = delete;
+    lock_free_queue(const lock_free_queue &) = delete;
+    lock_free_queue &operator=(const lock_free_queue &) = delete;
 
     bool empty(){
         return write_finish_index_ == write_index_ && write_finish_index_ == read_index_;
@@ -40,9 +40,9 @@ public:
         return SIZE_T_MAX - read_index_ + write_finish_index_ + 1;
     }
 
-    void push_back(std::shared_ptr<T> &itemptr){
+    void push_back(std::shared_ptr<T> &&itemptr){
         size_t index = write_index_++;
-        v_[index % SIZE] = itemptr;
+        v_[index % SIZE] = std::move(itemptr);
         size_t e_index = index;
         while(!write_finish_index_.compare_exchange_weak(e_index,e_index + 1,std::memory_order_release)) {
             e_index = index;

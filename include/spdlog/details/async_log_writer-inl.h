@@ -14,7 +14,6 @@ namespace spdlog {
 namespace details {
 
 SPDLOG_INLINE async_log_writer::async_log_writer(size_t q_max_items, std::function<void()> on_thread_start)
-    : q_(q_max_items)
 {
     async_log_threads_ = std::thread([this, on_thread_start] {
         on_thread_start();
@@ -65,11 +64,11 @@ void SPDLOG_INLINE async_log_writer::post_async_msg_(async_msg &&new_msg, async_
 {
     if (overflow_policy == async_overflow_policy::block)
     {
-        q_.enqueue(std::move(new_msg));
+        q_.push_back(std::move(new_msg));
     }
     else
     {
-        q_.enqueue_nowait(std::move(new_msg));
+        q_.push_back(std::move(new_msg));
     }
 }
 
@@ -83,14 +82,13 @@ void SPDLOG_INLINE async_log_writer::worker_loop_()
 // was received)
 bool SPDLOG_INLINE async_log_writer::process_next_msg_()
 {
-    async_msg incoming_async_msg;
-    bool dequeued = q_.dequeue_for(incoming_async_msg, std::chrono::seconds(10));
-    if (!dequeued)
+    auto msgptr = q_.pop_front();
+    if (incoming_async_msg == nullptr)
     {
         return true;
     }
 
-    switch (incoming_async_msg.msg_type)
+    switch (msgptr->msg_type)
     {
     case async_msg_type::log: {
         //TODO 写日志到sink

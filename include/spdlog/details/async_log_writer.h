@@ -4,7 +4,7 @@
 #pragma once
 
 #include <spdlog/details/log_msg_buffer.h>
-#include <spdlog/details/mpmc_blocking_q.h>
+#include <spdlog/details/lock_free_queue.h>
 #include <spdlog/details/os.h>
 
 #include <chrono>
@@ -73,7 +73,7 @@ class SPDLOG_API async_log_writer
 {
 public:
     using item_type = async_msg;
-    using q_type = details::mpmc_blocking_queue<item_type>;
+    using q_type = details::lock_free_queue<item_type,4096>;
 
     async_log_writer(size_t q_max_items, std::function<void()> on_thread_start);
     async_log_writer(size_t q_max_items);
